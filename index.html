@@ -1,0 +1,2760 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeaDocs - Offline AI Multimedia Search</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        space: ['Space Grotesk', 'sans-serif'],
+                    },
+                    dropShadow: {
+                        neon: "0 0 12px rgba(217, 70, 239, 0.6)", // Neon fuchsia
+                        'neon-purple': "0 0 12px rgba(139, 92, 246, 0.6)",
+                        'neon-blue': "0 0 12px rgba(59, 130, 246, 0.6)",
+                    },
+                    aspectRatio: {
+                        '9/16': '9 / 16',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-y: scroll;
+            cursor: none;
+            /* YEH ZAROORI HAI - Dark background fluid effect ke liye behtar hai */
+            background-color: #000;
+        }
+
+        /* * --- START: SPLASH CURSOR CSS (ADDED) ---
+         * Yeh fluid effect canvas ke liye style hai
+         */
+        #fluid-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 50;
+            /* TargetCursor (9999) se kam hai */
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        #fluid {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* --- END: SPLASH CURSOR CSS --- */
+
+
+        /* Neon gradient text */
+        .text-gradient {
+            background-image: linear-gradient(90deg, #d946ef, #8b5cf6, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+
+        /* Glassmorphic button style */
+        .glass-button {
+            background-image: linear-gradient(90deg, rgba(217, 70, 239, 0.1), rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glass-button:hover {
+            background-image: linear-gradient(90deg, rgba(217, 70, 239, 0.2), rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+            border: 1px solid rgba(217, 70, 239, 0.7);
+            box-shadow: 0 0 15px rgba(217, 70, 239, 0.5),
+                0 0 30px rgba(217, 70, 239, 0.3);
+            transform: translateY(-2px) scale(1.02);
+            color: white;
+        }
+
+        /* Glassmorphic card style */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            /* Purple glow border on hover */
+            transform: translateY(-4px);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Glassmorphic sidebar style */
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Nav links hover animation */
+        .nav-link:hover {
+            color: white;
+            transform: translateY(-2px);
+            text-shadow: 0 0 8px rgba(217, 70, 239, 0.7),
+                0 0 15px rgba(217, 70, 239, 0.5);
+        }
+
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Docs Sidebar link styles */
+        .docs-link {
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+
+        .docs-link:hover {
+            color: white;
+            border-left-color: #d946ef;
+            /* Fuchsia */
+            background-color: rgba(217, 70, 239, 0.1);
+        }
+
+        .docs-link.active {
+            /* JS will add this class */
+            color: white;
+            font-weight: 600;
+            border-left-color: #d946ef;
+            /* Fuchsia */
+            background-color: rgba(217, 70, 239, 0.1);
+        }
+
+
+        /* Main hero radial glow */
+        .radial-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 70vh;
+            max-width: 1000px;
+            max-height: 800px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(0, 0, 0, 0) 60%);
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* CSS-Only Floating Particles */
+        .particle-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -5;
+            /* Behind radial glow */
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(217, 70, 239, 0.5);
+            /* Neon Fuchsia */
+            animation: float 25s infinite linear;
+            opacity: 0;
+            bottom: -10vh;
+            /* Start from bottom */
+        }
+
+        .particle:nth-child(1) {
+            width: 5px;
+            height: 5px;
+            left: 10%;
+            animation-duration: 20s;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            width: 3px;
+            height: 3px;
+            left: 25%;
+            animation-duration: 30s;
+            animation-delay: 2s;
+            background: rgba(139, 92, 246, 0.5);
+        }
+
+        .particle:nth-child(3) {
+            width: 4px;
+            height: 4px;
+            left: 50%;
+            animation-duration: 15s;
+            animation-delay: 5s;
+        }
+
+        .particle:nth-child(4) {
+            width: 2px;
+            height: 2px;
+            left: 70%;
+            animation-duration: 35s;
+            animation-delay: 1s;
+            background: rgba(59, 130, 246, 0.5);
+        }
+
+        .particle:nth-child(5) {
+            width: 5px;
+            height: 5px;
+            left: 85%;
+            animation-duration: 22s;
+            animation-delay: 3s;
+        }
+
+        .particle:nth-child(6) {
+            width: 3px;
+            height: 3px;
+            left: 5%;
+            animation-duration: 28s;
+            animation-delay: 7s;
+            background: rgba(139, 92, 246, 0.5);
+        }
+
+        .particle:nth-child(7) {
+            width: 4px;
+            height: 4px;
+            left: 40%;
+            animation-duration: 18s;
+            animation-delay: 4s;
+        }
+
+        .particle:nth-child(8) {
+            width: 2px;
+            height: 2px;
+            left: 60%;
+            animation-duration: 40s;
+            animation-delay: 6s;
+            background: rgba(59, 130, 246, 0.5);
+        }
+
+        .particle:nth-child(9) {
+            width: 5px;
+            height: 5px;
+            left: 75%;
+            animation-duration: 24s;
+            animation-delay: 8s;
+        }
+
+        .particle:nth-child(10) {
+            width: 3px;
+            height: 3px;
+            left: 95%;
+            animation-duration: 32s;
+            animation-delay: 9s;
+            background: rgba(139, 92, 246, 0.5);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-110vh);
+                opacity: 0;
+            }
+        }
+
+        /* Smooth fade-in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-out forwards;
+        }
+
+        .fade-in-1 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.2s forwards;
+        }
+
+        .fade-in-2 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.4s forwards;
+        }
+
+        .fade-in-3 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.6s forwards;
+        }
+
+        .fade-in-4 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.8s forwards;
+        }
+
+        /* RE-STAGGERED ANIMATIONS */
+        .fade-in-5 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.0s forwards;
+        }
+
+        .fade-in-6 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.2s forwards;
+        }
+
+        .fade-in-7 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.4s forwards;
+        }
+
+        .fade-in-8 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.6s forwards;
+        }
+
+        .fade-in-9 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.8s forwards;
+        }
+
+        .fade-in-10 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.0s forwards;
+        }
+
+        .fade-in-11 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.2s forwards;
+        }
+
+        .fade-in-12 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.4s forwards;
+        }
+
+        .fade-in-13 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.6s forwards;
+        }
+
+        .fade-in-14 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 2.8s forwards;
+        }
+
+        .fade-in-15 {
+            opacity: 0;
+            animation: fadeIn 1s ease-out 3.0s forwards;
+        }
+
+
+        /* Styles for Docs & Download Content */
+        .docs-content h2 {
+            font-size: 2.25rem;
+            /* text-4xl */
+            font-weight: 700;
+            /* bold */
+            background-image: linear-gradient(90deg, #d946ef, #8b5cf6, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            padding-bottom: 0.5rem;
+            /* pb-2 */
+            margin-top: 3rem;
+            /* mt-12 */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .docs-content h3 {
+            font-size: 1.5rem;
+            /* text-2xl */
+            font-weight: 600;
+            /* semibold */
+            color: white;
+            margin-top: 2rem;
+            /* mt-8 */
+            margin-bottom: 0.75rem;
+            /* mb-3 */
+        }
+
+        .docs-content p,
+        .docs-content ul,
+        .docs-content li {
+            font-size: 1rem;
+            /* text-base */
+            color: #d1d5db;
+            /* text-gray-300 */
+            line-height: 1.75;
+            /* leading-relaxed */
+            margin-bottom: 1rem;
+            /* mb-4 */
+        }
+
+        .docs-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            /* pl-6 */
+        }
+
+        .docs-content code {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #f0abfc;
+            /* text-fuchsia-300 */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            /* rounded */
+            font-family: 'Space Grotesk', monospace;
+        }
+
+        /* Scroll-to-anchor offset */
+        .docs-section,
+        .page-section {
+            padding-top: 6rem;
+            /* pt-24 - Adjust this to match nav height */
+            margin-top: -4rem;
+            /* -mt-16 - Fine-tune this offset */
+        }
+
+        /* Styles for Target Cursor */
+        .target-cursor-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+            z-index: 9999;
+            /* Yeh sabse upar hai */
+            mix-blend-mode: difference;
+            transform: translate(-50%, -50%);
+        }
+
+        .target-cursor-dot {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            will-change: transform;
+        }
+
+        .target-cursor-corner {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            border: 3px solid #fff;
+            will-change: transform;
+        }
+
+        .corner-tl {
+            transform: translate(-150%, -150%);
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-tr {
+            transform: translate(50%, -150%);
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-br {
+            transform: translate(50%, 50%);
+            border-left: none;
+            border-top: none;
+        }
+
+        .corner-bl {
+            transform: translate(-150%, 50%);
+            border-right: none;
+            border-top: none;
+        }
+
+        /* Styles for Horizontal Scroll */
+        .horizontal-scroll-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 1.5rem;
+            /* gap-6 */
+            padding-bottom: 1.5rem;
+            /* pb-6, for scrollbar */
+            /* Hide scrollbar */
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .horizontal-scroll-container::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, Opera */
+        }
+
+        .scroll-card {
+            flex: 0 0 auto;
+            /* Don't grow, don't shrink, base size auto */
+            width: 60%;
+            /* Show more than one card */
+        }
+
+        @media (min-width: 640px) {
+
+            /* sm */
+            .scroll-card {
+                width: 40%;
+            }
+        }
+
+        @media (min-width: 1024px) {
+
+            /* lg */
+            .scroll-card {
+                width: 20%;
+                /* Show more on desktop */
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white antialiased overflow-x-hidden font-space">
+
+    <div id="fluid-container">
+        <canvas id="fluid"></canvas>
+    </div>
+    <div class="particle-container">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <nav class="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-lg">
+        <div class="w-full max-w-7xl mx-auto py-6 flex justify-between items-center px-4 sm:px-6 lg:px-8">
+            <a href="#home" class="text-2xl font-bold text-gradient cursor-target">
+                MeaDocs
+            </a>
+            <div class="hidden md:flex gap-8 text-gray-300">
+                <a href="#home" class="nav-link active cursor-target">Home</a>
+                <a href="#features" class="nav-link cursor-target">Features</a>
+                <a href="#download" class="nav-link cursor-target">Download</a>
+                <a href="#docs" class="nav-link cursor-target">Docs</a>
+                <a href="#contact" class="nav-link cursor-target">Contact</a>
+            </div>
+            <div class="flex gap-6 items-center text-gray-400">
+                <a href="#" class="hover:text-white transition-colors nav-link cursor-target" aria-label="Twitter">
+                    <i data-lucide="twitter" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="relative z-10 flex flex-col items-center px-4 sm:px-6 lg:px-8">
+
+        <div class="radial-glow"></div>
+
+        <main id="home"
+            class="page-section flex-grow flex flex-col justify-center items-center text-center pt-20 pb-16 w-full max-w-7xl mx-auto">
+
+            <h1
+                class="text-5xl md:text-6xl font-black text-gradient leading-tight tracking-tighter max-w-4xl fade-in-1">
+                Offline AI Multimedia Search
+            </h1>
+
+            <h2 class="text-3xl md:text-4xl font-bold text-white mt-4 fade-in-2">
+                Fast. Private. Powerful.
+            </h2>
+
+            <p class="text-lg text-gray-400 mt-6 max-w-2xl fade-in-3">
+                MeaDocs helps you instantly find photos, videos, documents, and audio using natural-language search —
+                fully offline and privacy-first.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 mt-10 fade-in-4">
+                <a href="#download" class="glass-button font-semibold py-3 px-8 rounded-lg text-white cursor-target">
+                    Download App
+                </a>
+            </div>
+
+            <section class="w-full max-w-5xl mx-auto mt-24 md:mt-32 fade-in-5">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white">See It In Action</h2>
+                    <p class="text-lg text-gray-400 mt-4">A quick overview of MeaDocs' semantic search.</p>
+                </div>
+                <div class="w-full aspect-video rounded-2xl glass-card overflow-hidden cursor-target p-2">
+                    <img src="https://placehold.co/1600x900/000000/3b82f6?text=Video+Placeholder"
+                        alt="MeaDocs demo video placeholder" class="w-full h-full object-cover rounded-lg">
+                </div>
+            </section>
+
+            <section id="features" class="page-section text-center pt-32 pb-16 md:pt-48 md:pb-24">
+                <h1
+                    class="text-4xl md:text-5xl font-black text-gradient leading-tight tracking-tighter max-w-4xl fade-in-6">
+                    Powerful AI Features, Built for Speed & Privacy
+                </h1>
+                <p class="text-lg text-gray-400 mt-6 max-w-3xl mx-auto fade-in-6">
+                    Explore what makes MeaDocs the fastest offline AI multimedia search engine.
+                </p>
+            </section>
+
+            <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 w-full fade-in-7">
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="brain" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">AI Semantic Search</h3>
+                    <p class="text-gray-400">
+                        MeaDocs understands natural language queries to find photos, videos, documents, and audio
+                        instantly.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="wifi-off" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">Works 100% Offline</h3>
+                    <p class="text-gray-400">
+                        Your data never leaves your device. Search is fully local and ultra fast.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="layers" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">Multimodal Engine</h3>
+                    <p class="text-gray-400">
+                        Powered by CLIP + FAISS, capable of indexing images, videos, text, and audio files.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="quote" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">Natural Language Queries</h3>
+                    <p class="text-gray-400">
+                        Search like: “Find the video where I wore a red shirt” or “Show me contract PDFs from 2023”.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="eye" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">Smart Previews</h3>
+                    <p class="text-gray-400">
+                        MeaDocs displays quick previews of detected results without heavy loading.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                    <div class="p-3 bg-purple-900/50 rounded-lg border border-purple-500/30 mb-5">
+                        <i data-lucide="shield" class="w-7 h-7 text-purple-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-white">Privacy-First Architecture</h3>
+                    <p class="text-gray-400">
+                        No cloud, no tracking, no uploads — your data stays yours forever.
+                    </p>
+                </div>
+
+            </section>
+
+            <section class="w-full max-w-7xl mx-auto mt-24 md:mt-32 fade-in-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white">Visual Showcase</h2>
+                    <p class="text-lg text-gray-400 mt-4">Screenshots of the MeaDocs interface.</p>
+                </div>
+                <div class="horizontal-scroll-container cursor-target">
+                    <div class="scroll-card">
+                        <img src="index.jpg" alt="MeaDocs"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="image.jpg" alt="MeaDocs Screenshot 2"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="video.jpg" alt="MeaDocs Screenshot 3"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="audio.jpg" alt="MeaDocs Screenshot 4"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="document.jpg" alt="MeaDocs Screenshot 5"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="process.jpg" alt="MeaDocs Screenshot 6"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                    <div class="scroll-card">
+                        <img src="output.jpg" alt="MeaDocs Screenshot 7"
+                            class="w-full h-full object-cover rounded-2xl glass-card p-2 aspect-16/9">
+                    </div>
+                </div>
+            </section>
+
+
+            <section
+                class="w-full max-w-5xl my-24 lg:my-32 p-8 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden fade-in-9 cursor-target">
+                <div class="absolute left-0 top-0 h-full w-1.5 bg-fuchsia-500"
+                    style="box-shadow: 0 0 15px rgba(217, 70, 239, 0.7);"></div>
+
+                <p class="text-center text-xl md:text-2xl text-gray-300 pl-4">
+                    “Designed for creators, professionals, and anyone who wants fast offline search.”
+                </p>
+            </section>
+
+            <section id="download" class="page-section w-full max-w-7xl mx-auto pt-32 md:pt-48 pb-24 text-left">
+                <div class="text-center mb-16 fade-in-10">
+                    <h1
+                        class="text-4xl md:text-5xl font-black text-gradient leading-tight tracking-tighter max-w-4xl mx-auto">
+                        Download MeaDocs
+                    </h1>
+                    <p class="text-lg text-gray-400 mt-6 max-w-3xl mx-auto">
+                        Choose your operating system to begin downloading the latest version.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full mb-16 fade-in-11">
+
+                    <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                        <svg class="w-10 h-10 text-blue-400 mb-4" fill="currentColor" viewBox="0 0 48 48"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M0 0h22.857v22.857H0V0zm25.143 0H48v22.857H25.143V0zM0 25.143h22.857V48H0V25.143zm25.143 0H48V48H25.143V25.143z" />
+                        </svg>
+                        <h3 class="text-2xl font-bold mb-2 text-white">Windows</h3>
+                        <p class="text-sm text-gray-400 mb-4">v1.0.0 (64-bit)</p>
+                        <p class="text-xs text-gray-500">File: MeaDocs_Setup_1.0.0.exe</p>
+                        <p class="text-xs text-gray-500 mb-4">Size: 705 MB</p>
+
+                        <a href="https://github.com/Bablusinghnirwan/MeaDocs/releases/download/download/MeaDocs.Setup.1.0.0.exe                         class="
+                            glass-button font-semibold py-2 px-6 rounded-lg text-white w-full cursor-target no-underline
+                            hover:text-white">
+                            Download MeaDocs (v1.0.0)
+                        </a>
+
+                        <p class="text-xs text-yellow-500/90 mt-4 font-semibold">
+                            Important: If you see "Windows protected your PC", click More Info > Run Anyway. (This
+                            happens because the app is new).
+                        </p>
+                        <ul class="text-xs text-gray-400 mt-2 list-disc list-inside">
+                            <li>Compatible with Windows 10, 11</li>
+                            <li>Auto-update supported</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                        <i data-lucide="apple" class="w-10 h-10 text-gray-200 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2 text-white">macOS</h3>
+                        <p class="text-sm text-gray-400 mb-4">Coming Soon</p>
+                        <p class="text-xs text-gray-500">File: N/A</p>
+                        <p class="text-xs text-gray-500 mb-4">Size: N/A</p>
+                        <button
+                            class="glass-button font-semibold py-2 px-6 rounded-lg text-white/50 w-full cursor-not-allowed"
+                            disabled>Coming Soon</button>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-8 flex flex-col items-start text-left cursor-target">
+                        <i data-lucide="box" class="w-10 h-10 text-yellow-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2 text-white">Linux</h3>
+                        <p class="text-sm text-gray-400 mb-4">Coming Soon</p>
+                        <p class="text-xs text-gray-500">File: N/A</p>
+                        <p class="text-xs text-gray-500 mb-4">Size: N/A</p>
+                        <button
+                            class="glass-button font-semibold py-2 px-6 rounded-lg text-white/50 w-full cursor-not-allowed"
+                            disabled>Coming Soon</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 docs-content fade-in-11">
+                    <article>
+                        <h2 style="margin-top: 0;">System Requirements</h2>
+                        <h3>Processor</h3>
+                        <ul>
+                            <li><strong>Windows:</strong> x64</li>
+                            <li><strong>macOS:</strong> Intel / M1 / M2 / M3</li>
+                            <li><strong>Linux:</strong> x86_64</li>
+                        </ul>
+                        <h3>Minimum RAM</h3>
+                        <ul>
+                            <li><strong>8 GB</strong> required (for AI features)</li>
+                            <li><strong>16 GB</strong> recommended</li>
+                        </ul>
+                        <h3>Disk Space</h3>
+                        <ul>
+                            <li><strong>2 GB</strong> for installation</li>
+                            <li>Extra storage based on file library size</li>
+                        </ul>
+                    </article>
+                    <article>
+                        <h2 style="margin-top: 0;">Installation Steps</h2>
+                        <h3>Windows</h3>
+                        <ul>
+                            <li>Run the <code>.exe</code> installer.</li>
+                            <li><strong>Important:</strong> If you see "Windows protected your PC", click <strong>More
+                                    Info</strong> > <strong>Run Anyway</strong>. (This happens because the app is new).
+                            </li>
+                            <li>Launch MeaDocs.</li>
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
+
+            <section id="docs" class="page-section w-full max-w-7xl mx-auto pt-32 md:pt-48 pb-24 text-left">
+                <div class="text-center mb-16 fade-in-12">
+                    <h1
+                        class="text-4xl md:text-5xl font-black text-gradient leading-tight tracking-tighter max-w-4xl mx-auto">
+                        Documentation
+                    </h1>
+                    <p class="text-lg text-gray-400 mt-6 max-w-3xl mx-auto">
+                        Everything you need to know to get started with MeaDocs.
+                    </p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-12 fade-in-13">
+
+                    <aside
+                        class="lg:w-1/4 lg:sticky lg:top-24 lg:self-start h-full lg:max-h-[70vh] lg:overflow-y-auto glass-sidebar rounded-2xl p-6">
+                        <nav class="flex flex-col gap-2">
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Get Started
+                            </h3>
+                            <a href="#doc-introduction"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Introduction</a>
+                            <a href="#doc-installation"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Installation</a>
+                            <a href="#doc-how-to-use"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">How to Use</a>
+
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Guides
+                            </h3>
+                            <a href="#doc-features-explained"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Features
+                                Explained</a>
+                            <a href="#doc-faqs"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">FAQs</a>
+                            <a href="#doc-troubleshooting"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Troubleshooting</a>
+
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Reference
+                            </h3>
+                            <a href="#doc-shortcuts"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Keyboard
+                                Shortcuts</a>
+                            <a href="#doc-changelog"
+                                class="docs-link text-gray-300 p-3 rounded-md font-medium cursor-target">Changelog</a>
+                        </nav>
+                    </aside>
+
+                    <article class="lg:w-3/4 docs-content">
+
+                        <section id="doc-introduction" class="docs-section">
+                            <h2>What is MeaDocs?</h2>
+                            <p>
+                                MeaDocs is an advanced, offline-first multimedia search engine powered by
+                                state-of-the-art AI. It allows you to search your local collection of images, videos,
+                                documents, and audio files using natural language.
+                            </p>
+                            <p>
+                                Unlike cloud-based services, MeaDocs runs <strong>entirely on your device</strong>. Your
+                                files are never uploaded, scanned, or shared with anyone. This privacy-first design
+                                ensures that your personal data remains truly personal, all while delivering powerful
+                                search capabilities without an internet connection.
+                            </p>
+                        </section>
+
+                        <section id="doc-installation" class="docs-section">
+                            <h2>Installation</h2>
+
+                            <h3>Windows Installation</h3>
+                            <ul>
+                                <li><strong>Download</strong> the latest <code>MeaDocs_Setup_1.0.0.exe</code> installer
+                                    from our website.</li>
+                                <li><strong>Double-click</strong> the installer to run the setup.</li>
+                                <li><strong>Note:</strong> If Windows SmartScreen shows a popup, click <strong>"More
+                                        info"</strong> and then <strong>"Run anyway"</strong>. (MeaDocs is safe, but may
+                                    be flagged as an "unknown publisher" initially).</li>
+                                <li>Follow the on-screen prompts to complete the installation.</li>
+                                <li>On first launch, MeaDocs will ask you to select folders to index.</li>
+                            </ul>
+
+                            <h3>System Requirements</h3>
+                            <ul>
+                                <li><strong>OS:</strong> Windows 10/11 (64-bit)</li>
+                                <li><strong>RAM:</strong> 8GB (Minimum), 16GB (Recommended for large libraries)</li>
+                                <li><strong>Disk Space:</strong> 2GB for application + space for the index (varies by
+                                    library size)</li>
+                            </ul>
+
+                            <h3>Troubleshooting Installation</h3>
+                            <ul>
+                                <li><strong>Unknown Publisher Warning:</strong> This is normal for new software. Click
+                                    <strong>"More info"</strong> -> <strong>"Run anyway"</strong>.</li>
+                                <li><strong>Defender Popup:</strong> If Windows Defender blocks the app, you may need to
+                                    <strong>"Allow"</strong> it to run.</li>
+                                <li><strong>Not Enough Permissions:</strong> Ensure you are running the installer as an
+                                    administrator. Right-click -> <strong>"Run as administrator"</strong>.</li>
+                            </ul>
+                        </section>
+
+                        <section id="doc-how-to-use" class="docs-section">
+                            <h2>How to Use</h2>
+
+                            <h3>Step 1 — Add Folders</h3>
+                            <p>
+                                Go to <code>Settings > Folders</code> and click "Add Folder". Select the directories on
+                                your computer you want MeaDocs to search. Supported formats include:
+                            </p>
+                            <ul>
+                                <li><strong>Images:</strong> JPG, PNG, WEBP, BMP</li>
+                                <li><strong>Videos:</strong> MP4, MKV, AVI, MOV</li>
+                                <li><strong>Documents:</strong> PDF, TXT, MD</li>
+                                <li><strong>Audio:</strong> MP3, WAV, FLAC</li>
+                            </ul>
+
+                            <h3>Step 2 — Indexing</h3>
+                            <p>
+                                Once you add folders, MeaDocs begins indexing. It uses AI models (like CLIP and FAISS)
+                                to create a local vector index of your content. This "index" is what allows for fast,
+                                natural language search. This process only runs once per file and can take time for
+                                large libraries.
+                            </p>
+
+                            <h3>Step 3 — Searching</h3>
+                            <p>
+                                Use the main search bar to type queries just like you would talk. MeaDocs understands
+                                context, objects, and concepts, not just keywords.
+                            </p>
+                            <p>Try queries like:</p>
+                            <ul>
+                                <li><code>"find pictures with mountains and snow"</code></li>
+                                <li><code>"show pdf invoices from 2023"</code></li>
+                                <li><code>"find videos where I am on a bike"</code></li>
+                                <li><code>"audio file of a podcast about technology"</code></li>
+                            </ul>
+
+                            <h3>Step 4 — Previewing Results</h3>
+                            <p>
+                                MeaDocs will display results almost instantly. You can click on any result to see a
+                                smart preview or open the file directly in its default application.
+                            </p>
+                        </section>
+
+                        <section id="doc-features-explained" class="docs-section">
+                            <h2>Features Explained</h2>
+
+                            <h3>AI Semantic Search</h3>
+                            <p>Instead of matching just filenames (like <code>cat.jpg</code>), MeaDocs understands the
+                                <strong>content</strong> of your files. It knows what a "cat" looks like, so it finds
+                                all images of cats, even if they're named <code>IMG_1234.jpg</code>.</p>
+
+                            <h3>Works 100% Offline</h3>
+                            <p>No internet connection is required after installation. All AI processing and searching
+                                happens directly on your machine.</p>
+
+                            <h3>Multimodal Engine</h3>
+                            <p>Our engine can index and search across different types of media (images, video, text,
+                                audio) all at once, giving you a complete view of your data.</p>
+
+                            <h3>Natural Language Search</h3>
+                            <p>You don't need to learn special syntax. Just ask questions in plain English, and the AI
+                                will find the most relevant results.</p>
+
+                            <h3>Smart Previews</h3>
+                            <p>Quickly preview images, read snippets of documents, or see thumbnails from videos
+                                directly in the search results to find what you need faster.</p>
+
+                            <h3>Privacy-First Architecture</h3>
+                            <p>We built MeaDocs from the ground up to be private. We have <strong>no servers, no cloud,
+                                    no tracking, and no data collection</strong>. Your files and your search history
+                                never leave your computer, ever.</p>
+                        </section>
+
+                        <section id="doc-faqs" class="docs-section">
+                            <h2>FAQs</h2>
+
+                            <h3>Does MeaDocs work offline?</h3>
+                            <p>Yes. 100%. After the initial download and installation, you never need an internet
+                                connection again.</p>
+
+                            <h3>Does MeaDocs upload my data?</h3>
+                            <p><strong>Never.</strong> Your files, your index, and your search queries never leave your
+                                device. We have no cloud servers to upload to.</p>
+
+                            <h3>Is internet required for indexing?</h3>
+                            <p>No. The AI models are bundled with the installer. All indexing is done locally.</p>
+
+                            <h3>Why is indexing taking a long time?</h3>
+                            <p>Indexing is a one-time, CPU-intensive process. The AI has to "look" at every file to
+                                understand its content. For large libraries (100,000+ files), this can take several
+                                hours. We recommend letting it run overnight. Future updates will be much faster.</p>
+
+                            <h3>How much RAM does MeaDocs need?</h3>
+                            <p>We recommend at least <strong>8GB of RAM</strong>. For very large libraries, 16GB is
+                                ideal for smooth performance during indexing.</p>
+
+                            <h3>Can I index an external HDD?</h3>
+                            <p>Yes. You can add folders from any connected drive. However, the drive must be connected
+                                to your computer for MeaDocs to search those files.</p>
+
+                            <h3>What if search shows no results?</h3>
+                            <p>This usually means either the indexing process is not yet complete or the folders
+                                containing your files have not been added. Check <code>Settings > Folders</code> to
+                                ensure your directories are listed and check the status icon for indexing progress.</p>
+
+                            <h3>How do I re-index my database?</h3>
+                            <p>Go to <code>Settings > Database</code> and click "Clear and Re-index All". This will
+                                delete your current index and start the process over. This is useful if you feel your
+                                results are inaccurate.</p>
+                        </section>
+
+                        <section id="doc-troubleshooting" class="docs-section">
+                            <h2>Troubleshooting</h2>
+
+                            <h3>Index Failed</h3>
+                            <p>If the index process fails, try restarting the app. If it fails again, try re-indexing.
+                                This can sometimes be caused by a corrupted file in your library or running out of disk
+                                space.</p>
+
+                            <h3>No Results Found</h3>
+                            <p>Ensure your folders are added and indexing is complete. Try a very simple query (like
+                                "tree" or "person") to test the index.</p>
+
+                            <h3>Folder Permission Denied</h3>
+                            <p>MeaDocs may not have permission to read files in certain protected directories (like
+                                system folders). Ensure your files are in user-accessible folders like "My Documents",
+                                "My Pictures", or on another drive.</p>
+
+                            <h3>Slow Performance</h3>
+                            <p>Searching may be slow if indexing is still running in the background. Wait for it to
+                                complete. If performance is still slow, your computer may not meet the minimum system
+                                requirements, or your library may be exceptionally large.</p>
+
+                            <h3>Clearing the Cache</h3>
+                            <p>You can clear the app's cache in <code>Settings > Advanced</code>. This can sometimes
+                                resolve UI or preview-related issues.</p>
+                        </section>
+
+                        <section id="doc-shortcuts" class="docs-section">
+                            <h2>Keyboard Shortcuts</h2>
+                            <ul>
+                                <li><code>Ctrl + F</code> or <code>Ctrl + K</code>: Focus the Search Bar</li>
+                                <li><code>Ctrl + R</code>: Force Re-scan Folders for Changes</li>
+                                <li><code>Ctrl + O</code>: Add a New Folder to Index</li>
+                                <li><code>Ctrl + ,</code>: Open Settings</li>
+                                <li><code>Esc</code>: Close Settings or Clear Search</li>
+                            </ul>
+                        </section>
+
+                        <section id="doc-changelog" class="docs-section">
+                            <h2>Changelog</h2>
+
+                            <h3 class="text-lg">v1.0.0 — Initial Release</h3>
+                            <ul>
+                                <li>Offline-first AI search for images, video, and audio.</li>
+                                <li>Privacy-first architecture.</li>
+                            </ul>
+                        </section>
+
+                    </article>
+                </div>
+            </section>
+
+            <section id="contact" class="page-section w-full max-w-3xl mx-auto pt-32 md:pt-48 pb-24 text-center">
+                <div class="mb-12 fade-in-14">
+                    <h1
+                        class="text-4xl md:text-5xl font-black text-gradient leading-tight tracking-tighter max-w-4xl mx-auto">
+                        Get In Touch
+                    </h1>
+                    <p class="text-lg text-gray-400 mt-6 max-w-3xl mx-auto">
+                        Have a question, feedback, or a feature request? Let us know.
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-2xl p-8 text-left fade-in-15">
+
+                    <form action="https://api.web3forms.com/submit" method="POST" class="flex flex-col gap-6">
+
+                        <input type="hidden" name="access_key" value="1dabb488-2f6e-48c7-a67d-aaca2afd3012">
+                        <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Your Name</label>
+                            <input type="text" id="name" name="name" required
+                                class="cursor-target w-full p-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500 transition-colors"
+                                placeholder="Ada Lovelace">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-300 mb-2">Your Email</label>
+                            <input type="email" id="email" name="email" required
+                                class="cursor-target w-full p-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500 transition-colors"
+                                placeholder="ada@example.com">
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                            <textarea id="message" name="message" rows="4" required
+                                class="cursor-target w-full p-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500 transition-colors"
+                                placeholder="Your message..."></textarea>
+                        </div>
+                        <div>
+                            <button type="submit"
+                                class="glass-button font-semibold py-3 px-8 rounded-lg text-white w-full cursor-target">
+                                Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="privacy" class="page-section w-full max-w-5xl mx-auto pt-24 pb-12 text-left docs-content">
+                <h2>Privacy Policy</h2>
+                <p>MeaDocs is designed with privacy as its core principle.</p>
+                <ul>
+                    <li><strong>No Data Collection:</strong> We do not collect, store, or transmit your personal files,
+                        search queries, or usage data to any external server.</li>
+                    <li><strong>Local Processing:</strong> All AI processing (indexing and searching) happens 100%
+                        locally on your device.</li>
+                    <li><strong>No Tracking:</strong> We do not use cookies or tracking pixels in the desktop
+                        application.</li>
+                </ul>
+            </section>
+
+            <section id="terms"
+                class="page-section w-full max-w-5xl mx-auto pt-12 pb-24 text-left docs-content border-t border-white/10">
+                <h2>Terms & Conditions</h2>
+                <p>By downloading and using MeaDocs, you agree to the following:</p>
+                <ul>
+                    <li><strong>License:</strong> MeaDocs is provided as-is. You may use it for personal or commercial
+                        purposes.</li>
+                    <li><strong>Liability:</strong> The developers are not liable for any data loss or damages arising
+                        from the use of this software.</li>
+                    <li><strong>Updates:</strong> We may provide updates to improve functionality, but we are not
+                        obligated to do so indefinitely.</li>
+                </ul>
+            </section>
+
+        </main>
+
+        <footer class="w-full max-w-7xl mx-auto py-8 text-gray-500 text-sm border-t border-white/10 mt-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+                <span>© 2025 MeaDocs. All rights reserved.</span>
+                <div class="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                    <a href="#privacy" class="hover:text-white transition-colors cursor-target">Privacy Policy</a>
+                    <a href="#terms" class="hover:text-white transition-colors cursor-target">Terms & Conditions</a>
+                    <a href="mailto:meadocsindia@gmail.com"
+                        class="hover:text-white transition-colors cursor-target">meadocsindia@gmail.com</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // React props ki default values ab hardcoded constants hain
+            const SIM_RESOLUTION = 128;
+            const DYE_RESOLUTION = 1440;
+            const CAPTURE_RESOLUTION = 512;
+            const DENSITY_DISSIPATION = 3.5;
+            const VELOCITY_DISSIPATION = 2;
+            const PRESSURE = 0.1;
+            const PRESSURE_ITERATIONS = 20;
+            const CURL = 3;
+            const SPLAT_RADIUS = 0.2;
+            const SPLAT_FORCE = 6000;
+            const SHADING = true;
+            const COLOR_UPDATE_SPEED = 10;
+            const BACK_COLOR = { r: 0.5, g: 0, b: 0 };
+            const TRANSPARENT = true;
+
+            // React ke 'useRef' ko 'document.getElementById' se replace kiya gaya
+            const canvas = document.getElementById('fluid');
+            if (!canvas) {
+                console.error("Canvas element not found!");
+                return;
+            }
+
+            // --- Yahaan se neeche poora WebGL/Fluid code hai ---
+
+            function pointerPrototype() {
+                this.id = -1;
+                this.texcoordX = 0;
+                this.texcoordY = 0;
+                this.prevTexcoordX = 0;
+                this.prevTexcoordY = 0;
+                this.deltaX = 0;
+                this.deltaY = 0;
+                this.down = false;
+                this.moved = false;
+                this.color = [0, 0, 0];
+            }
+
+            let config = {
+                SIM_RESOLUTION,
+                DYE_RESOLUTION,
+                CAPTURE_RESOLUTION,
+                DENSITY_DISSIPATION,
+                VELOCITY_DISSIPATION,
+                PRESSURE,
+                PRESSURE_ITERATIONS,
+                CURL,
+                SPLAT_RADIUS,
+                SPLAT_FORCE,
+                SHADING,
+                COLOR_UPDATE_SPEED,
+                PAUSED: false,
+                BACK_COLOR,
+                TRANSPARENT
+            };
+
+            let pointers = [new pointerPrototype()];
+
+            const { gl, ext } = getWebGLContext(canvas);
+            if (!ext.supportLinearFiltering) {
+                config.DYE_RESOLUTION = 256;
+                config.SHADING = false;
+            }
+
+            function getWebGLContext(canvas) {
+                const params = {
+                    alpha: true,
+                    depth: false,
+                    stencil: false,
+                    antialias: false,
+                    preserveDrawingBuffer: false
+                };
+                let gl = canvas.getContext('webgl2', params);
+                const isWebGL2 = !!gl;
+                if (!isWebGL2) gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
+
+                let halfFloat;
+                let supportLinearFiltering;
+                if (isWebGL2) {
+                    gl.getExtension('EXT_color_buffer_float');
+                    supportLinearFiltering = gl.getExtension('OES_texture_float_linear');
+                } else {
+                    halfFloat = gl.getExtension('OES_texture_half_float');
+                    supportLinearFiltering = gl.getExtension('OES_texture_half_float_linear');
+                }
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+                const halfFloatTexType = isWebGL2 ? gl.HALF_FLOAT : halfFloat && halfFloat.HALF_FLOAT_OES;
+                let formatRGBA;
+                let formatRG;
+                let formatR;
+
+                if (isWebGL2) {
+                    formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, halfFloatTexType);
+                    formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
+                    formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
+                } else {
+                    formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+                    formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+                    formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+                }
+
+                return {
+                    gl,
+                    ext: {
+                        formatRGBA,
+                        formatRG,
+                        formatR,
+                        halfFloatTexType,
+                        supportLinearFiltering
+                    }
+                };
+            }
+
+            function getSupportedFormat(gl, internalFormat, format, type) {
+                if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
+                    switch (internalFormat) {
+                        case gl.R16F:
+                            return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+                        case gl.RG16F:
+                            return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+                        default:
+                            return null;
+                    }
+                }
+                return { internalFormat, format };
+            }
+
+            function supportRenderTextureFormat(gl, internalFormat, format, type) {
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, 4, 4, 0, format, type, null);
+                const fbo = gl.createFramebuffer();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+                const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+                return status === gl.FRAMEBUFFER_COMPLETE;
+            }
+
+            class Material {
+                constructor(vertexShader, fragmentShaderSource) {
+                    this.vertexShader = vertexShader;
+                    this.fragmentShaderSource = fragmentShaderSource;
+                    this.programs = [];
+                    this.activeProgram = null;
+                    this.uniforms = [];
+                }
+                setKeywords(keywords) {
+                    let hash = 0;
+                    for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
+                    let program = this.programs[hash];
+                    if (program == null) {
+                        let fragmentShader = compileShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource, keywords);
+                        program = createProgram(this.vertexShader, fragmentShader);
+                        this.programs[hash] = program;
+                    }
+                    if (program === this.activeProgram) return;
+                    this.uniforms = getUniforms(program);
+                    this.activeProgram = program;
+                }
+                bind() {
+                    gl.useProgram(this.activeProgram);
+                }
+            }
+
+            class Program {
+                constructor(vertexShader, fragmentShader) {
+                    this.uniforms = {};
+                    this.program = createProgram(vertexShader, fragmentShader);
+                    this.uniforms = getUniforms(this.program);
+                }
+                bind() {
+                    gl.useProgram(this.program);
+                }
+            }
+
+            function createProgram(vertexShader, fragmentShader) {
+                let program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) console.trace(gl.getProgramInfoLog(program));
+                return program;
+            }
+
+            function getUniforms(program) {
+                let uniforms = [];
+                let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+                for (let i = 0; i < uniformCount; i++) {
+                    let uniformName = gl.getActiveUniform(program, i).name;
+                    uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
+                }
+                return uniforms;
+            }
+
+            function compileShader(type, source, keywords) {
+                source = addKeywords(source, keywords);
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) console.trace(gl.getShaderInfoLog(shader));
+                return shader;
+            }
+
+            function addKeywords(source, keywords) {
+                if (!keywords) return source;
+                let keywordsString = '';
+                keywords.forEach(keyword => {
+                    keywordsString += '#define ' + keyword + '\n';
+                });
+                return keywordsString + source;
+            }
+
+            const baseVertexShader = compileShader(
+                gl.VERTEX_SHADER,
+                `
+                precision highp float;
+                attribute vec2 aPosition;
+                varying vec2 vUv;
+                varying vec2 vL;
+                varying vec2 vR;
+                varying vec2 vT;
+                varying vec2 vB;
+                uniform vec2 texelSize;
+
+                void main () {
+                    vUv = aPosition * 0.5 + 0.5;
+                    vL = vUv - vec2(texelSize.x, 0.0);
+                    vR = vUv + vec2(texelSize.x, 0.0);
+                    vT = vUv + vec2(0.0, texelSize.y);
+                    vB = vUv - vec2(0.0, texelSize.y);
+                    gl_Position = vec4(aPosition, 0.0, 1.0);
+                }
+                `
+            );
+
+            const copyShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                uniform sampler2D uTexture;
+
+                void main () {
+                    gl_FragColor = texture2D(uTexture, vUv);
+                }
+                `
+            );
+
+            const clearShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                uniform sampler2D uTexture;
+                uniform float value;
+
+                void main () {
+                    gl_FragColor = value * texture2D(uTexture, vUv);
+                }
+                `
+            );
+
+            const displayShaderSource = `
+                precision highp float;
+                precision highp sampler2D;
+                varying vec2 vUv;
+                varying vec2 vL;
+                varying vec2 vR;
+                varying vec2 vT;
+                varying vec2 vB;
+                uniform sampler2D uTexture;
+                uniform sampler2D uDithering;
+                uniform vec2 ditherScale;
+                uniform vec2 texelSize;
+
+                vec3 linearToGamma (vec3 color) {
+                    color = max(color, vec3(0));
+                    return max(1.055 * pow(color, vec3(0.416666667)) - 0.055, vec3(0));
+                }
+
+                void main () {
+                    vec3 c = texture2D(uTexture, vUv).rgb;
+                    #ifdef SHADING
+                        vec3 lc = texture2D(uTexture, vL).rgb;
+                        vec3 rc = texture2D(uTexture, vR).rgb;
+                        vec3 tc = texture2D(uTexture, vT).rgb;
+                        vec3 bc = texture2D(uTexture, vB).rgb;
+
+                        float dx = length(rc) - length(lc);
+                        float dy = length(tc) - length(bc);
+
+                        vec3 n = normalize(vec3(dx, dy, length(texelSize)));
+                        vec3 l = vec3(0.0, 0.0, 1.0);
+
+                        float diffuse = clamp(dot(n, l) + 0.7, 0.7, 1.0);
+                        c *= diffuse;
+                    #endif
+
+                    float a = max(c.r, max(c.g, c.b));
+                    gl_FragColor = vec4(c, a);
+                }
+            `;
+
+            const splatShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision highp float;
+                precision highp sampler2D;
+                varying vec2 vUv;
+                uniform sampler2D uTarget;
+                uniform float aspectRatio;
+                uniform vec3 color;
+                uniform vec2 point;
+                uniform float radius;
+
+                void main () {
+                    vec2 p = vUv - point.xy;
+                    p.x *= aspectRatio;
+                    vec3 splat = exp(-dot(p, p) / radius) * color;
+                    vec3 base = texture2D(uTarget, vUv).xyz;
+                    gl_FragColor = vec4(base + splat, 1.0);
+                }
+                `
+            );
+
+            const advectionShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision highp float;
+                precision highp sampler2D;
+                varying vec2 vUv;
+                uniform sampler2D uVelocity;
+                uniform sampler2D uSource;
+                uniform vec2 texelSize;
+                uniform vec2 dyeTexelSize;
+                uniform float dt;
+                uniform float dissipation;
+
+                vec4 bilerp (sampler2D sam, vec2 uv, vec2 tsize) {
+                    vec2 st = uv / tsize - 0.5;
+                    vec2 iuv = floor(st);
+                    vec2 fuv = fract(st);
+
+                    vec4 a = texture2D(sam, (iuv + vec2(0.5, 0.5)) * tsize);
+                    vec4 b = texture2D(sam, (iuv + vec2(1.5, 0.5)) * tsize);
+                    vec4 c = texture2D(sam, (iuv + vec2(0.5, 1.5)) * tsize);
+                    vec4 d = texture2D(sam, (iuv + vec2(1.5, 1.5)) * tsize);
+
+                    return mix(mix(a, b, fuv.x), mix(c, d, fuv.x), fuv.y);
+                }
+
+                void main () {
+                    #ifdef MANUAL_FILTERING
+                        vec2 coord = vUv - dt * bilerp(uVelocity, vUv, texelSize).xy * texelSize;
+                        vec4 result = bilerp(uSource, coord, dyeTexelSize);
+                    #else
+                        vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
+                        vec4 result = texture2D(uSource, coord);
+                    #endif
+                    float decay = 1.0 + dissipation * dt;
+                    gl_FragColor = result / decay;
+                }
+                `,
+                ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']
+            );
+
+            const divergenceShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                varying highp vec2 vL;
+                varying highp vec2 vR;
+                varying highp vec2 vT;
+                varying highp vec2 vB;
+                uniform sampler2D uVelocity;
+
+                void main () {
+                    float L = texture2D(uVelocity, vL).x;
+                    float R = texture2D(uVelocity, vR).x;
+                    float T = texture2D(uVelocity, vT).y;
+                    float B = texture2D(uVelocity, vB).y;
+
+                    vec2 C = texture2D(uVelocity, vUv).xy;
+                    if (vL.x < 0.0) { L = -C.x; }
+                    if (vR.x > 1.0) { R = -C.x; }
+                    if (vT.y > 1.0) { T = -C.y; }
+                    if (vB.y < 0.0) { B = -C.y; }
+
+                    float div = 0.5 * (R - L + T - B);
+                    gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+                }
+                `
+            );
+
+            const curlShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                varying highp vec2 vL;
+                varying highp vec2 vR;
+                varying highp vec2 vT;
+                varying highp vec2 vB;
+                uniform sampler2D uVelocity;
+
+                void main () {
+                    float L = texture2D(uVelocity, vL).y;
+                    float R = texture2D(uVelocity, vR).y;
+                    float T = texture2D(uVelocity, vT).x;
+                    float B = texture2D(uVelocity, vB).x;
+                    float vorticity = R - L - T + B;
+                    gl_FragColor = vec4(0.5 * vorticity, 0.0, 0.0, 1.0);
+                }
+                `
+            );
+
+            const vorticityShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision highp float;
+                precision highp sampler2D;
+                varying vec2 vUv;
+                varying vec2 vL;
+                varying vec2 vR;
+                varying vec2 vT;
+                varying vec2 vB;
+                uniform sampler2D uVelocity;
+                uniform sampler2D uCurl;
+                uniform float curl;
+                uniform float dt;
+
+                void main () {
+                    float L = texture2D(uCurl, vL).x;
+                    float R = texture2D(uCurl, vR).x;
+                    float T = texture2D(uCurl, vT).x;
+                    float B = texture2D(uCurl, vB).x;
+                    float C = texture2D(uCurl, vUv).x;
+
+                    vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+                    force /= length(force) + 0.0001;
+                    force *= curl * C;
+                    force.y *= -1.0;
+
+                    vec2 velocity = texture2D(uVelocity, vUv).xy;
+                    velocity += force * dt;
+                    velocity = min(max(velocity, -1000.0), 1000.0);
+                    gl_FragColor = vec4(velocity, 0.0, 1.0);
+                }
+                `
+            );
+
+            const pressureShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                varying highp vec2 vL;
+                varying highp vec2 vR;
+                varying highp vec2 vT;
+                varying highp vec2 vB;
+                uniform sampler2D uPressure;
+                uniform sampler2D uDivergence;
+
+                void main () {
+                    float L = texture2D(uPressure, vL).x;
+                    float R = texture2D(uPressure, vR).x;
+                    float T = texture2D(uPressure, vT).x;
+                    float B = texture2D(uPressure, vB).x;
+                    float C = texture2D(uPressure, vUv).x;
+                    float divergence = texture2D(uDivergence, vUv).x;
+                    float pressure = (L + R + B + T - divergence) * 0.25;
+                    gl_FragColor = vec4(pressure, 0.0, 0.0, 1.0);
+                }
+                `
+            );
+
+            const gradientSubtractShader = compileShader(
+                gl.FRAGMENT_SHADER,
+                `
+                precision mediump float;
+                precision mediump sampler2D;
+                varying highp vec2 vUv;
+                varying highp vec2 vL;
+                varying highp vec2 vR;
+                varying highp vec2 vT;
+                varying highp vec2 vB;
+                uniform sampler2D uPressure;
+                uniform sampler2D uVelocity;
+
+                void main () {
+                    float L = texture2D(uPressure, vL).x;
+                    float R = texture2D(uPressure, vR).x;
+                    float T = texture2D(uPressure, vT).x;
+                    float B = texture2D(uPressure, vB).x;
+                    vec2 velocity = texture2D(uVelocity, vUv).xy;
+                    velocity.xy -= vec2(R - L, T - B);
+                    gl_FragColor = vec4(velocity, 0.0, 1.0);
+                }
+                `
+            );
+
+            const blit = (() => {
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
+                gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(0);
+                return (target, clear = false) => {
+                    if (target == null) {
+                        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+                        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                    } else {
+                        gl.viewport(0, 0, target.width, target.height);
+                        gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+                    }
+                    if (clear) {
+                        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                        gl.clear(gl.COLOR_BUFFER_BIT);
+                    }
+                    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+                };
+            })();
+
+            let dye, velocity, divergence, curl, pressure;
+
+            const copyProgram = new Program(baseVertexShader, copyShader);
+            const clearProgram = new Program(baseVertexShader, clearShader);
+            const splatProgram = new Program(baseVertexShader, splatShader);
+            const advectionProgram = new Program(baseVertexShader, advectionShader);
+            const divergenceProgram = new Program(baseVertexShader, divergenceShader);
+            const curlProgram = new Program(baseVertexShader, curlShader);
+            const vorticityProgram = new Program(baseVertexShader, vorticityShader);
+            const pressureProgram = new Program(baseVertexShader, pressureShader);
+            const gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
+            const displayMaterial = new Material(baseVertexShader, displayShaderSource);
+
+            function initFramebuffers() {
+                let simRes = getResolution(config.SIM_RESOLUTION);
+                let dyeRes = getResolution(config.DYE_RESOLUTION);
+                const texType = ext.halfFloatTexType;
+                const rgba = ext.formatRGBA;
+                const rg = ext.formatRG;
+                const r = ext.formatR;
+                const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
+                gl.disable(gl.BLEND);
+
+                if (!dye)
+                    dye = createDoubleFBO(dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
+                else
+                    dye = resizeDoubleFBO(dye, dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
+
+                if (!velocity)
+                    velocity = createDoubleFBO(simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
+                else
+                    velocity = resizeDoubleFBO(
+                        velocity,
+                        simRes.width,
+                        simRes.height,
+                        rg.internalFormat,
+                        rg.format,
+                        texType,
+                        filtering
+                    );
+
+                divergence = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+                curl = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+                pressure = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+            }
+
+            function createFBO(w, h, internalFormat, format, type, param) {
+                gl.activeTexture(gl.TEXTURE0);
+                let texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
+
+                let fbo = gl.createFramebuffer();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+                gl.viewport(0, 0, w, h);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+
+                let texelSizeX = 1.0 / w;
+                let texelSizeY = 1.0 / h;
+                return {
+                    texture,
+                    fbo,
+                    width: w,
+                    height: h,
+                    texelSizeX,
+                    texelSizeY,
+                    attach(id) {
+                        gl.activeTexture(gl.TEXTURE0 + id);
+                        gl.bindTexture(gl.TEXTURE_2D, texture);
+                        return id;
+                    }
+                };
+            }
+
+            function createDoubleFBO(w, h, internalFormat, format, type, param) {
+                let fbo1 = createFBO(w, h, internalFormat, format, type, param);
+                let fbo2 = createFBO(w, h, internalFormat, format, type, param);
+                return {
+                    width: w,
+                    height: h,
+                    texelSizeX: fbo1.texelSizeX,
+                    texelSizeY: fbo1.texelSizeY,
+                    get read() {
+                        return fbo1;
+                    },
+                    set read(value) {
+                        fbo1 = value;
+                    },
+                    get write() {
+                        return fbo2;
+                    },
+                    set write(value) {
+                        fbo2 = value;
+                    },
+                    swap() {
+                        let temp = fbo1;
+                        fbo1 = fbo2;
+                        fbo2 = temp;
+                    }
+                };
+            }
+
+            function resizeFBO(target, w, h, internalFormat, format, type, param) {
+                let newFBO = createFBO(w, h, internalFormat, format, type, param);
+                copyProgram.bind();
+                gl.uniform1i(copyProgram.uniforms.uTexture, target.attach(0));
+                blit(newFBO);
+                return newFBO;
+            }
+
+            function resizeDoubleFBO(target, w, h, internalFormat, format, type, param) {
+                if (target.width === w && target.height === h) return target;
+                target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
+                target.write = createFBO(w, h, internalFormat, format, type, param);
+                target.width = w;
+                target.height = h;
+                target.texelSizeX = 1.0 / w;
+                target.texelSizeY = 1.0 / h;
+                return target;
+            }
+
+            function updateKeywords() {
+                let displayKeywords = [];
+                if (config.SHADING) displayKeywords.push('SHADING');
+                displayMaterial.setKeywords(displayKeywords);
+            }
+
+            updateKeywords();
+            initFramebuffers();
+            let lastUpdateTime = Date.now();
+            let colorUpdateTimer = 0.0;
+
+            function updateFrame() {
+                const dt = calcDeltaTime();
+                if (resizeCanvas()) initFramebuffers();
+                updateColors(dt);
+                applyInputs();
+                step(dt);
+                render(null);
+                requestAnimationFrame(updateFrame);
+            }
+
+            function calcDeltaTime() {
+                let now = Date.now();
+                let dt = (now - lastUpdateTime) / 1000;
+                dt = Math.min(dt, 0.016666);
+                lastUpdateTime = now;
+                return dt;
+            }
+
+            function resizeCanvas() {
+                let width = scaleByPixelRatio(canvas.clientWidth);
+                let height = scaleByPixelRatio(canvas.clientHeight);
+                if (canvas.width !== width || canvas.height !== height) {
+                    canvas.width = width;
+                    canvas.height = height;
+                    return true;
+                }
+                return false;
+            }
+
+            function updateColors(dt) {
+                colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
+                if (colorUpdateTimer >= 1) {
+                    colorUpdateTimer = wrap(colorUpdateTimer, 0, 1);
+                    pointers.forEach(p => {
+                        p.color = generateColor();
+                    });
+                }
+            }
+
+            function applyInputs() {
+                pointers.forEach(p => {
+                    if (p.moved) {
+                        p.moved = false;
+                        splatPointer(p);
+                    }
+                });
+            }
+
+            function step(dt) {
+                gl.disable(gl.BLEND);
+                curlProgram.bind();
+                gl.uniform2f(curlProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                gl.uniform1i(curlProgram.uniforms.uVelocity, velocity.read.attach(0));
+                blit(curl);
+
+                vorticityProgram.bind();
+                gl.uniform2f(vorticityProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read.attach(0));
+                gl.uniform1i(vorticityProgram.uniforms.uCurl, curl.attach(1));
+                gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
+                gl.uniform1f(vorticityProgram.uniforms.dt, dt);
+                blit(velocity.write);
+                velocity.swap();
+
+                divergenceProgram.bind();
+                gl.uniform2f(divergenceProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                gl.uniform1i(divergenceProgram.uniforms.uVelocity, velocity.read.attach(0));
+                blit(divergence);
+
+                clearProgram.bind();
+                gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
+                gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
+                blit(pressure.write);
+                pressure.swap();
+
+                pressureProgram.bind();
+                gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
+                for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+                    gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
+                    blit(pressure.write);
+                    pressure.swap();
+                }
+
+                gradienSubtractProgram.bind();
+                gl.uniform2f(gradienSubtractProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read.attach(0));
+                gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read.attach(1));
+                blit(velocity.write);
+                velocity.swap();
+
+                advectionProgram.bind();
+                gl.uniform2f(advectionProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+                if (!ext.supportLinearFiltering)
+                    gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, velocity.texelSizeX, velocity.texelSizeY);
+                let velocityId = velocity.read.attach(0);
+                gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
+                gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
+                gl.uniform1f(advectionProgram.uniforms.dt, dt);
+                gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
+                blit(velocity.write);
+                velocity.swap();
+
+                if (!ext.supportLinearFiltering)
+                    gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY);
+                gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
+                gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
+                gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
+                blit(dye.write);
+                dye.swap();
+            }
+
+            function render(target) {
+                gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+                gl.enable(gl.BLEND);
+                drawDisplay(target);
+            }
+
+            function drawDisplay(target) {
+                let width = target == null ? gl.drawingBufferWidth : target.width;
+                let height = target == null ? gl.drawingBufferHeight : target.height;
+                displayMaterial.bind();
+                if (config.SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
+                gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
+                blit(target);
+            }
+
+            function splatPointer(pointer) {
+                let dx = pointer.deltaX * config.SPLAT_FORCE;
+                let dy = pointer.deltaY * config.SPLAT_FORCE;
+                splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
+            }
+
+            function clickSplat(pointer) {
+                const color = generateColor();
+                color.r *= 10.0;
+                color.g *= 10.0;
+                color.b *= 10.0;
+                let dx = 10 * (Math.random() - 0.5);
+                let dy = 30 * (Math.random() - 0.5);
+                splat(pointer.texcoordX, pointer.texcoordY, dx, dy, color);
+            }
+
+            function splat(x, y, dx, dy, color) {
+                splatProgram.bind();
+                gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
+                gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
+                gl.uniform2f(splatProgram.uniforms.point, x, y);
+                gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
+                gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
+                blit(velocity.write);
+                velocity.swap();
+
+                gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
+                gl.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b);
+                blit(dye.write);
+                dye.swap();
+            }
+
+            function correctRadius(radius) {
+                let aspectRatio = canvas.width / canvas.height;
+                if (aspectRatio > 1) radius *= aspectRatio;
+                return radius;
+            }
+
+            function updatePointerDownData(pointer, id, posX, posY) {
+                pointer.id = id;
+                pointer.down = true;
+                pointer.moved = false;
+                pointer.texcoordX = posX / canvas.width;
+                pointer.texcoordY = 1.0 - posY / canvas.height;
+                pointer.prevTexcoordX = pointer.texcoordX;
+                pointer.prevTexcoordY = pointer.texcoordY;
+                pointer.deltaX = 0;
+                pointer.deltaY = 0;
+                pointer.color = generateColor();
+            }
+
+            function updatePointerMoveData(pointer, posX, posY, color) {
+                pointer.prevTexcoordX = pointer.texcoordX;
+                pointer.prevTexcoordY = pointer.texcoordY;
+                pointer.texcoordX = posX / canvas.width;
+                pointer.texcoordY = 1.0 - posY / canvas.height;
+                pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX);
+                pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY);
+                pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
+                pointer.color = color;
+            }
+
+            function updatePointerUpData(pointer) {
+                pointer.down = false;
+            }
+
+            function correctDeltaX(delta) {
+                let aspectRatio = canvas.width / canvas.height;
+                if (aspectRatio < 1) delta *= aspectRatio;
+                return delta;
+            }
+
+            function correctDeltaY(delta) {
+                let aspectRatio = canvas.width / canvas.height;
+                if (aspectRatio > 1) delta /= aspectRatio;
+                return delta;
+            }
+
+            function generateColor() {
+                let c = HSVtoRGB(Math.random(), 1.0, 1.0);
+                c.r *= 0.15;
+                c.g *= 0.15;
+                c.b *= 0.15;
+                return c;
+            }
+
+            function HSVtoRGB(h, s, v) {
+                let r, g, b, i, f, p, q, t;
+                i = Math.floor(h * 6);
+                f = h * 6 - i;
+                p = v * (1 - s);
+                q = v * (1 - f * s);
+                t = v * (1 - (1 - f) * s);
+                switch (i % 6) {
+                    case 0:
+                        r = v;
+                        g = t;
+                        b = p;
+                        break;
+                    case 1:
+                        r = q;
+                        g = v;
+                        b = p;
+                        break;
+                    case 2:
+                        r = p;
+                        g = v;
+                        b = t;
+                        break;
+                    case 3:
+                        r = p;
+                        g = q;
+                        b = v;
+                        break;
+                    case 4:
+                        r = t;
+                        g = p;
+                        b = v;
+                        break;
+                    case 5:
+                        r = v;
+                        g = p;
+                        b = q;
+                        break;
+                    default:
+                        break;
+                }
+                return { r, g, b };
+            }
+
+            function wrap(value, min, max) {
+                const range = max - min;
+                if (range === 0) return min;
+                return ((value - min) % range) + min;
+            }
+
+            function getResolution(resolution) {
+                let aspectRatio = gl.drawingBufferWidth / gl.drawingBufferHeight;
+                if (aspectRatio < 1) aspectRatio = 1.0 / aspectRatio;
+                const min = Math.round(resolution);
+                const max = Math.round(resolution * aspectRatio);
+                if (gl.drawingBufferWidth > gl.drawingBufferHeight) return { width: max, height: min };
+                else return { width: min, height: max };
+            }
+
+            function scaleByPixelRatio(input) {
+                const pixelRatio = window.devicePixelRatio || 1;
+                return Math.floor(input * pixelRatio);
+            }
+
+            function hashCode(s) {
+                if (s.length === 0) return 0;
+                let hash = 0;
+                for (let i = 0; i < s.length; i++) {
+                    hash = (hash << 5) - hash + s.charCodeAt(i);
+                    hash |= 0;
+                }
+                return hash;
+            }
+
+            window.addEventListener('mousedown', e => {
+                let pointer = pointers[0];
+                let posX = scaleByPixelRatio(e.clientX);
+                let posY = scaleByPixelRatio(e.clientY);
+                updatePointerDownData(pointer, -1, posX, posY);
+                clickSplat(pointer);
+            });
+
+            document.body.addEventListener('mousemove', function handleFirstMouseMove(e) {
+                let pointer = pointers[0];
+                let posX = scaleByPixelRatio(e.clientX);
+                let posY = scaleByPixelRatio(e.clientY);
+                let color = generateColor();
+                updateFrame();
+                updatePointerMoveData(pointer, posX, posY, color);
+                document.body.removeEventListener('mousemove', handleFirstMouseMove);
+            });
+
+            window.addEventListener('mousemove', e => {
+                let pointer = pointers[0];
+                let posX = scaleByPixelRatio(e.clientX);
+                let posY = scaleByPixelRatio(e.clientY);
+                let color = pointer.color;
+                updatePointerMoveData(pointer, posX, posY, color);
+            });
+
+            document.body.addEventListener('touchstart', function handleFirstTouchStart(e) {
+                const touches = e.targetTouches;
+                let pointer = pointers[0];
+                for (let i = 0; i < touches.length; i++) {
+                    let posX = scaleByPixelRatio(touches[i].clientX);
+                    let posY = scaleByPixelRatio(touches[i].clientY);
+                    updateFrame();
+                    updatePointerDownData(pointer, touches[i].identifier, posX, posY);
+                }
+                document.body.removeEventListener('touchstart', handleFirstTouchStart);
+            });
+
+            window.addEventListener('touchstart', e => {
+                const touches = e.targetTouches;
+                let pointer = pointers[0];
+                for (let i = 0; i < touches.length; i++) {
+                    let posX = scaleByPixelRatio(touches[i].clientX);
+                    let posY = scaleByPixelRatio(touches[i].clientY);
+                    updatePointerDownData(pointer, touches[i].identifier, posX, posY);
+                }
+            });
+
+            window.addEventListener(
+                'touchmove',
+                e => {
+                    const touches = e.targetTouches;
+                    let pointer = pointers[0];
+                    for (let i = 0; i < touches.length; i++) {
+                        let posX = scaleByPixelRatio(touches[i].clientX);
+                        let posY = scaleByPixelRatio(touches[i].clientY);
+                        updatePointerMoveData(pointer, posX, posY, pointer.color);
+                    }
+                },
+                false
+            );
+
+            window.addEventListener('touchend', e => {
+                const touches = e.changedTouches;
+                let pointer = pointers[0];
+                for (let i = 0; i < touches.length; i++) {
+                    updatePointerUpData(pointer);
+                }
+            });
+
+            updateFrame();
+
+        }); // DOMContentLoaded listener ends yahaan
+    </script>
+    <script type="module">
+        // Initialize Lucide Icons
+        try {
+            lucide.createIcons();
+        } catch (error) {
+            console.error("Lucide icons failed to load.", error);
+        }
+
+        // Docs & Nav sidebar scroll-spy
+        // This makes the sidebar link "active" when you scroll
+        const sections = document.querySelectorAll('.page-section, .docs-section');
+        const mainNavLinks = document.querySelectorAll('.nav-link');
+        const docsNavLinks = document.querySelectorAll('.docs-link');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+
+                    // Handle Main Nav
+                    mainNavLinks.forEach(link => {
+                        link.classList.remove('active', 'text-white', 'font-semibold');
+                        link.classList.add('text-gray-300');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active', 'text-white', 'font-semibold');
+                            link.classList.remove('text-gray-300');
+                        }
+                        // Special case for docs section
+                        if (id.startsWith('doc-') && link.getAttribute('href') === '#docs') {
+                            link.classList.add('active', 'text-white', 'font-semibold');
+                            link.classList.remove('text-gray-300');
+                        }
+                    });
+
+                    // Handle Docs Nav
+                    docsNavLinks.forEach(link => {
+                        link.classList.remove('active', 'text-white', 'font-semibold', 'bg-fuchsia-500/20');
+                        link.classList.add('text-gray-300');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active', 'text-white', 'font-semibold', 'bg-fuchsia-500/20');
+                            link.classList.remove('text-gray-300');
+                        }
+                    });
+                }
+            });
+        }, { rootMargin: "-30% 0px -70% 0px" }); // Activates when section is in middle 30% of viewport
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+
+        /*
+         * NEW: TargetCursor.js
+         * Standalone JavaScript class
+         */
+        class TargetCursor {
+            constructor(options = {}) {
+                // Set default options and merge with user-provided ones
+                this.options = Object.assign({
+                    targetSelector: '.cursor-target',
+                    spinDuration: 2,
+                    hideDefaultCursor: true,
+                    hoverDuration: 0.2,
+                    parallaxOn: true,
+                }, options);
+
+                // --- State and Refs from React ---
+                this.cursorRef = null;
+                this.cornersRef = [];
+                this.spinTl = null;
+                this.dotRef = null;
+                this.isActiveRef = {
+                    current: false
+                };
+                this.targetCornerPositionsRef = {
+                    current: null
+                };
+                this.tickerFnRef = null;
+                this.activeStrengthRef = {
+                    current: 0
+                };
+                this.activeTarget = null;
+                this.currentLeaveHandler = null;
+                this.resumeTimeout = null;
+                this.originalCursor = document.body.style.cursor;
+                // --- End State and Refs ---
+
+                this.constants = {
+                    borderWidth: 3,
+                    cornerSize: 12,
+                };
+
+                this.isMobile = this.checkIsMobile();
+
+                if (this.isMobile) {
+                    console.log('TargetCursor: Mobile device detected, cursor disabled.');
+                    // Revert cursor override if mobile
+                    document.body.style.cursor = 'auto';
+                    return;
+                }
+
+                if (typeof gsap === 'undefined') {
+                    console.error('TargetCursor: GSAP is not loaded. Please include the GSAP library.');
+                    // Revert cursor override if GSAP fails
+                    document.body.style.cursor = 'auto';
+                    return;
+                }
+
+                // Bind all event handler methods to `this`
+                this.moveHandler = this.moveHandler.bind(this);
+                this.scrollHandler = this.scrollHandler.bind(this);
+                this.mouseDownHandler = this.mouseDownHandler.bind(this);
+                this.mouseUpHandler = this.mouseUpHandler.bind(this);
+                this.enterHandler = this.enterHandler.bind(this);
+                this.tickerFn = this.tickerFn.bind(this);
+
+                this.init();
+            }
+
+            /**
+             * Checks if the device is mobile based on touch support,
+             * screen size, and user agent.
+             */
+            checkIsMobile() {
+                const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                const isSmallScreen = window.innerWidth <= 768;
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+                const isMobileUserAgent = mobileRegex.test(userAgent.toLowerCase());
+                return (hasTouchScreen && isSmallScreen) || isMobileUserAgent;
+            }
+
+            /**
+             * Main initialization function.
+             * Creates DOM elements, injects CSS, and sets up GSAP and listeners.
+             */
+            init() {
+                this.createCursorElement();
+
+                if (this.options.hideDefaultCursor) {
+                    // Already set in CSS, but good to have here
+                    document.body.style.cursor = 'none';
+                }
+
+                this.cornersRef = this.cursorRef.querySelectorAll('.target-cursor-corner');
+                this.dotRef = this.cursorRef.querySelector('.target-cursor-dot');
+
+                gsap.set(this.cursorRef, {
+                    xPercent: -50,
+                    yPercent: -50,
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                });
+
+                this.createSpinTimeline();
+
+                this.tickerFnRef = this.tickerFn;
+
+                window.addEventListener('mousemove', this.moveHandler);
+                window.addEventListener('scroll', this.scrollHandler, {
+                    passive: true
+                });
+                window.addEventListener('mousedown', this.mouseDownHandler);
+                window.addEventListener('mouseup', this.mouseUpHandler);
+                window.addEventListener('mouseover', this.enterHandler, {
+                    passive: true
+                });
+            }
+
+            /**
+             * Creates the cursor's DOM structure and appends it to the body.
+             */
+            createCursorElement() {
+                this.cursorRef = document.createElement('div');
+                this.cursorRef.className = 'target-cursor-wrapper';
+                this.cursorRef.innerHTML = `
+                    <div class="target-cursor-dot"></div>
+                    <div class="target-cursor-corner corner-tl"></div>
+                    <div class="target-cursor-corner corner-tr"></div>
+                    <div class="target-cursor-corner corner-br"></div>
+                    <div class="target-cursor-corner corner-bl"></div>
+                `;
+                document.body.appendChild(this.cursorRef);
+            }
+
+            /**
+             * Moves the cursor element using GSAP.
+             */
+            moveCursor(x, y) {
+                if (!this.cursorRef) return;
+                gsap.to(this.cursorRef, {
+                    x,
+                    y,
+                    duration: 0.1,
+                    ease: 'power3.out',
+                });
+            }
+
+            /**
+             * Creates the idle spinning animation timeline.
+             */
+            createSpinTimeline() {
+                if (this.spinTl) {
+                    this.spinTl.kill();
+                }
+                this.spinTl = gsap
+                    .timeline({
+                        repeat: -1
+                    })
+                    .to(this.cursorRef, {
+                        rotation: '+=360',
+                        duration: this.options.spinDuration,
+                        ease: 'none',
+                    });
+            }
+
+            /**
+             * The GSAP ticker function that runs every frame when a target is active.
+             * Moves the corners towards the target element's bounds.
+             */
+            tickerFn() {
+                if (
+                    !this.targetCornerPositionsRef.current ||
+                    !this.cursorRef ||
+                    !this.cornersRef
+                ) {
+                    return;
+                }
+
+                const strength = this.activeStrengthRef.current;
+                if (strength === 0) return;
+
+                const cursorX = gsap.getProperty(this.cursorRef, 'x');
+                const cursorY = gsap.getProperty(this.cursorRef, 'y');
+
+                this.cornersRef.forEach((corner, i) => {
+                    const currentX = gsap.getProperty(corner, 'x');
+                    const currentY = gsap.getProperty(corner, 'y');
+
+                    const targetX = this.targetCornerPositionsRef.current[i].x - cursorX;
+                    const targetY = this.targetCornerPositionsRef.current[i].y - cursorY;
+
+                    const finalX = currentX + (targetX - currentX) * strength;
+                    const finalY = currentY + (targetY - currentY) * strength;
+
+                    const duration =
+                        strength >= 0.99 ? (this.options.parallaxOn ? 0.2 : 0) : 0.05;
+
+                    gsap.to(corner, {
+                        x: finalX,
+                        y: finalY,
+                        duration: duration,
+                        ease: duration === 0 ? 'none' : 'power1.out',
+                        overwrite: 'auto',
+                    });
+                });
+            }
+
+            /**
+             * Handles the 'mousemove' event.
+             */
+            moveHandler(e) {
+                this.moveCursor(e.clientX, e.clientY);
+            }
+
+            /**
+             * Handles the 'scroll' event to check if the cursor is still over
+             * the active target.
+             */
+            scrollHandler() {
+                if (!this.activeTarget || !this.cursorRef) return;
+                const mouseX = gsap.getProperty(this.cursorRef, 'x');
+                const mouseY = gsap.getProperty(this.cursorRef, 'y');
+                const elementUnderMouse = document.elementFromPoint(mouseX, mouseY);
+                const isStillOverTarget =
+                    elementUnderMouse &&
+                    (elementUnderMouse === this.activeTarget ||
+                        elementUnderMouse.closest(this.options.targetSelector) === this.activeTarget);
+
+                if (!isStillOverTarget) {
+                    if (this.currentLeaveHandler) {
+                        this.currentLeaveHandler();
+                    }
+                }
+            }
+
+            /**
+             * Handles the 'mousedown' event.
+             */
+            mouseDownHandler() {
+                if (!this.dotRef) return;
+                gsap.to(this.dotRef, {
+                    scale: 0.7,
+                    duration: 0.3
+                });
+                gsap.to(this.cursorRef, {
+                    scale: 0.9,
+                    duration: 0.2
+                });
+            }
+
+            /**
+             * Handles the 'mouseup' event.
+             */
+            mouseUpHandler() {
+                if (!this.dotRef) return;
+                gsap.to(this.dotRef, {
+                    scale: 1,
+                    duration: 0.3
+                });
+                gsap.to(this.cursorRef, {
+                    scale: 1,
+                    duration: 0.2
+                });
+            }
+
+            /**
+             * Handles the 'mouseover' event, which detects entering a target.
+             */
+            enterHandler(e) {
+                const directTarget = e.target;
+                let target = null;
+
+                // Traverse up the DOM to find the outermost matching target
+                let current = directTarget;
+                while (current && current !== document.body) {
+                    if (current.matches(this.options.targetSelector)) {
+                        target = current; // Found a target, keep checking parents
+                    }
+                    current = current.parentElement;
+                }
+
+                if (!target || !this.cursorRef || !this.cornersRef) return;
+                if (this.activeTarget === target) return;
+
+                if (this.activeTarget) {
+                    this.cleanupTarget(this.activeTarget);
+                }
+
+                if (this.resumeTimeout) {
+                    clearTimeout(this.resumeTimeout);
+                    this.resumeTimeout = null;
+                }
+
+                this.activeTarget = target;
+                this.cornersRef.forEach(corner => gsap.killTweensOf(corner));
+
+                gsap.killTweensOf(this.cursorRef, 'rotation');
+                this.spinTl?.pause();
+                gsap.set(this.cursorRef, {
+                    rotation: 0
+                });
+
+                const rect = target.getBoundingClientRect();
+                const {
+                    borderWidth,
+                    cornerSize
+                } = this.constants;
+                const cursorX = gsap.getProperty(this.cursorRef, 'x');
+                const cursorY = gsap.getProperty(this.cursorRef, 'y');
+
+                this.targetCornerPositionsRef.current = [{
+                    x: rect.left - borderWidth,
+                    y: rect.top - borderWidth
+                }, {
+                    x: rect.right + borderWidth - cornerSize,
+                    y: rect.top - borderWidth
+                }, {
+                    x: rect.right + borderWidth - cornerSize,
+                    y: rect.bottom + borderWidth - cornerSize,
+                }, {
+                    x: rect.left - borderWidth,
+                    y: rect.bottom + borderWidth - cornerSize,
+                },];
+
+                this.isActiveRef.current = true;
+                gsap.ticker.add(this.tickerFnRef);
+
+                gsap.to(this.activeStrengthRef, {
+                    current: 1,
+                    duration: this.options.hoverDuration,
+                    ease: 'power2.out',
+                });
+
+                this.cornersRef.forEach((corner, i) => {
+                    gsap.to(corner, {
+                        x: this.targetCornerPositionsRef.current[i].x - cursorX,
+                        y: this.targetCornerPositionsRef.current[i].y - cursorY,
+                        duration: 0.2,
+                        ease: 'power2.out',
+                    });
+                });
+
+                // --- Define the leaveHandler ---
+                const leaveHandler = () => {
+                    gsap.ticker.remove(this.tickerFnRef);
+
+                    this.isActiveRef.current = false;
+                    this.targetCornerPositionsRef.current = null;
+                    gsap.set(this.activeStrengthRef, {
+                        current: 0,
+                        overwrite: true
+                    });
+                    this.activeTarget = null;
+
+                    if (this.cornersRef) {
+                        gsap.killTweensOf(this.cornersRef);
+                        const {
+                            cornerSize
+                        } = this.constants;
+                        const positions = [{
+                            x: -cornerSize * 1.5,
+                            y: -cornerSize * 1.5
+                        }, {
+                            x: cornerSize * 0.5,
+                            y: -cornerSize * 1.5
+                        }, {
+                            x: cornerSize * 0.5,
+                            y: cornerSize * 0.5
+                        }, {
+                            x: -cornerSize * 1.5,
+                            y: cornerSize * 0.5
+                        },];
+                        const tl = gsap.timeline();
+                        this.cornersRef.forEach((corner, index) => {
+                            tl.to(
+                                corner, {
+                                x: positions[index].x,
+                                y: positions[index].y,
+                                duration: 0.3,
+                                ease: 'power3.out',
+                            },
+                                0
+                            );
+                        });
+                    }
+
+
+                    this.resumeTimeout = setTimeout(() => {
+                        if (!this.activeTarget && this.cursorRef && this.spinTl) {
+                            const currentRotation = gsap.getProperty(this.cursorRef, 'rotation');
+                            const normalizedRotation = currentRotation % 360;
+
+                            this.spinTl.kill();
+                            this.spinTl = gsap
+                                .timeline({
+                                    repeat: -1
+                                })
+                                .to(this.cursorRef, {
+                                    rotation: '+=360',
+                                    duration: this.options.spinDuration,
+                                    ease: 'none',
+                                });
+
+                            gsap.to(this.cursorRef, {
+                                rotation: normalizedRotation + 360,
+                                duration: this.options.spinDuration * (1 - normalizedRotation / 360),
+                                ease: 'none',
+                                onComplete: () => {
+                                    this.spinTl?.restart();
+                                },
+                            });
+                        }
+                        this.resumeTimeout = null;
+                    }, 50);
+
+                    this.cleanupTarget(target);
+                };
+                // --- End leaveHandler definition ---
+
+                this.currentLeaveHandler = leaveHandler;
+                target.addEventListener('mouseleave', this.currentLeaveHandler);
+            }
+
+            /**
+             * Cleans up the leave listener from a target.
+             */
+            cleanupTarget(target) {
+                if (this.currentLeaveHandler) {
+                    target.removeEventListener('mouseleave', this.currentLeaveHandler);
+                }
+                this.currentLeaveHandler = null;
+            }
+
+        }
+
+        // NEW: Initialize the TargetCursor
+        try {
+            new TargetCursor();
+        } catch (error) {
+            console.error("TargetCursor failed to initialize.", error);
+            document.body.style.cursor = 'auto'; // Show default cursor on failure
+        }
+
+
+    </script>
+</body>
+
+</html>
